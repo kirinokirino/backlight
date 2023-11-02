@@ -7,8 +7,8 @@ use std::path::Path;
 fn main() {
     let mut backlight = Backlight::new().unwrap();
     let args: Vec<String> = env::args().collect();
-    let arg = str::parse::<f32>(&args.get(1).or(Some(&"100".to_owned())).unwrap())
-        .expect("arg should be f32");
+    let arg =
+        str::parse::<f32>(args.get(1).unwrap_or(&"100".to_owned())).expect("arg should be f32");
     backlight.bright(arg).unwrap();
 }
 
@@ -29,7 +29,7 @@ impl Backlight {
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
-            .open(&brightness_path)?;
+            .open(brightness_path)?;
         let current_brightness = read(&mut file)?;
         let has_write_permission = write(&mut file, current_brightness).is_ok();
 
