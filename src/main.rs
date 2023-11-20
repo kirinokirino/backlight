@@ -7,15 +7,19 @@ use std::path::Path;
 fn main() {
     let mut backlight = Backlight::new().unwrap();
     let args: Vec<String> = env::args().collect();
-    let arg =
-        str::parse::<f32>(args.get(1).unwrap_or(&"100".to_owned())).expect("arg should be f32");
-    backlight.bright(arg).unwrap();
+    if let Some(arg) = args.get(1) {
+        let brightness = str::parse::<f32>(arg).expect("arg should be f32");
+        let _ = backlight.bright(brightness);
+    } else {
+        backlight.auto();
+    }
 }
 
 pub struct Backlight {
     file: File,
     min_brightness: u64,
     max_brightness: u64,
+    span: u64,
     current: Option<u64>,
     has_write_permission: bool,
 }
@@ -41,14 +45,25 @@ impl Backlight {
             file,
             min_brightness,
             max_brightness,
-            current: None,
+            span: max_brightness - min_brightness,
+            current: Some(current_brightness as u64),
             has_write_permission,
         })
     }
 
+    pub fn auto(&mut self) {
+        if let Some(current) = self.current {
+            // if currently brighter than 2%
+            if current > 2 * (self.span / 100) {
+                let _ = self.bright(0.0);
+                return;
+            }
+        }
+        let _ = self.bright(100.0);
+    }
+
     pub fn bright(&mut self, percent: f32) -> Result<(), Box<dyn Error>> {
-        let span = self.max_brightness - self.min_brightness;
-        let one_percent = span as f32 / 100.0;
+        let one_percent = self.span as f32 / 100.0;
         let value = (one_percent * percent) as u64;
         self.set(value)
     }
